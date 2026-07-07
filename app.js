@@ -27,6 +27,8 @@ init();
 setupEvents();
 
 async function init() {
+    createBtn.textContent = '⏳ جاري تحميل المحرك...';
+
     try {
         const base = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm';
         state.ffmpeg = new FFmpeg();
@@ -43,10 +45,12 @@ async function init() {
         });
 
         state.loaded = true;
+        createBtn.textContent = '⚡ إنشاء الفيديو';
         console.log('FFmpeg ready');
     } catch (err) {
         console.error('FFmpeg init failed:', err);
-        progressText.textContent = '❌ فشل تحميل المحرك. تحقق من الاتصال بالإنترنت.';
+        createBtn.textContent = '⚡ إنشاء الفيديو';
+        progressText.textContent = '❌ فشل تحميل محرر الفيديو. تأكد من اتصالك بالإنترنت وحاول تحديث الصفحة.';
         progressSection.style.display = 'block';
     }
 }
@@ -64,12 +68,13 @@ function setupEvents() {
     dropZone.addEventListener('drop', (e) => {
         e.preventDefault();
         dropZone.classList.remove('drag-over');
-        handleFiles(e.dataTransfer.files);
+        handleFiles(Array.from(e.dataTransfer.files));
     });
 
     fileInput.addEventListener('change', () => {
-        handleFiles(fileInput.files);
+        const filesArr = Array.from(fileInput.files);
         fileInput.value = '';
+        handleFiles(filesArr);
     });
 
     createBtn.addEventListener('click', createVideo);
@@ -88,16 +93,32 @@ async function handleFiles(files) {
     const entries = [];
 
     for (const file of files) {
-        if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) continue;
+        if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+            console.warn('Skipped (unsupported type):', file.name, file.type);
+            continue;
+        }
 
         const type = file.type.startsWith('image') ? 'image' : 'video';
+        let thumb = '';
+
+        try {
+            thumb = await genThumb(file, type);
+        } catch (e) {
+            console.warn('Thumbnail failed for', file.name, e);
+        }
+
         entries.push({
             id: Date.now() + Math.random(),
             file,
             type,
             duration: type === 'image' ? 3 : null,
-            thumb: await genThumb(file, type),
+            thumb,
         });
+    }
+
+    if (!entries.length) {
+        console.warn('No valid files found');
+        return;
     }
 
     state.mediaFiles.push(...entries);
@@ -110,22 +131,28 @@ function genThumb(file, type) {
         if (type === 'image') {
             const r = new FileReader();
             r.onload = (e) => resolve(e.target.result);
+            r.onerror = () => resolve('');
             r.readAsDataURL(file);
         } else {
             const v = document.createElement('video');
             v.preload = 'metadata';
             v.muted = true;
-            v.onloadeddata = () => {
-                const c = document.createElement('canvas');
-                c.width = 120;
-                c.height = 90;
-                c.getContext('2d').drawImage(v, 0, 0, 120, 90);
-                resolve(c.toDataURL());
+            v.currentTime = 0.1;
+            v.onseeked = () => {
+                try {
+                    const c = document.createElement('canvas');
+                    c.width = 120;
+                    c.height = 90;
+                    c.getContext('2d').drawImage(v, 0, 0, 120, 90);
+                    resolve(c.toDataURL());
+                } catch (e) {
+                    resolve('');
+                }
                 URL.revokeObjectURL(v.src);
                 v.remove();
             };
             v.onerror = () => {
-                resolve('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 90"><rect fill="%23eee" width="120" height="90"/><text x="60" y="50" text-anchor="middle" fill="%23999" font-size="28">🎬</text></svg>');
+                resolve('');
                 v.remove();
             };
             v.src = URL.createObjectURL(file);
