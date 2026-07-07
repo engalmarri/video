@@ -26,6 +26,20 @@ const speedSelect = $('speedSelect');
 init().catch(e => console.error('Init error:', e));
 setupEvents();
 
+async function createFFmpegWorkerURL() {
+    const base = 'https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/esm';
+    const [constCode, errorsCode, workerCode] = await Promise.all([
+        fetch(`${base}/const.js`).then(r => r.text()),
+        fetch(`${base}/errors.js`).then(r => r.text()),
+        fetch(`${base}/worker.js`).then(r => r.text()),
+    ]);
+    const cleanWorker = workerCode
+        .replace(/import .+ from "\.\/const\.js";/, '')
+        .replace(/import .+ from "\.\/errors\.js";/, '');
+    const combined = `${constCode}\n${errorsCode}\n${cleanWorker}`;
+    return URL.createObjectURL(new Blob([combined], { type: 'text/javascript' }));
+}
+
 async function init() {
     createBtn.textContent = '⏳ جاري تحميل المحرك...';
 
@@ -38,11 +52,17 @@ async function init() {
             progressText.textContent = `جاري المعالجة... ${Math.round(pct)}%`;
         });
 
-        const base = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
-        const coreURL = await toBlobURL(`${base}/ffmpeg-core.js`, 'text/javascript');
-        const wasmURL = await toBlobURL(`${base}/ffmpeg-core.wasm`, 'application/wasm');
+        const [classWorkerURL, coreBlob, wasmBlob] = await Promise.all([
+            createFFmpegWorkerURL(),
+            toBlobURL('https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js', 'text/javascript'),
+            toBlobURL('https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.wasm', 'application/wasm'),
+        ]);
         console.log('Loading FFmpeg');
-        await state.ffmpeg.load({ coreURL, wasmURL });
+        await state.ffmpeg.load({
+            coreURL: coreBlob,
+            wasmURL: wasmBlob,
+            classWorkerURL,
+        });
 
         state.loaded = true;
         createBtn.textContent = '⚡ إنشاء الفيديو';
