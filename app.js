@@ -38,8 +38,10 @@ async function init() {
             progressText.textContent = `جاري المعالجة... ${Math.round(pct)}%`;
         });
 
-        const coreURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js';
-        const wasmURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.wasm';
+        const base = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
+        const coreURL = await toBlobURL(`${base}/ffmpeg-core.js`, 'text/javascript');
+        const wasmURL = await toBlobURL(`${base}/ffmpeg-core.wasm`, 'application/wasm');
+        console.log('Loading FFmpeg');
         await state.ffmpeg.load({ coreURL, wasmURL });
 
         state.loaded = true;
@@ -47,6 +49,9 @@ async function init() {
         console.log('FFmpeg ready');
     } catch (err) {
         console.error('FFmpeg init failed:', err);
+        console.error('Error name:', err.name);
+        console.error('Error message:', err.message);
+        if (err.stack) console.error('Error stack:', err.stack);
         createBtn.textContent = '⚡ إنشاء الفيديو';
         progressText.textContent = '❌ فشل تحميل محرر الفيديو. تأكد من اتصالك بالإنترنت وحاول تحديث الصفحة.';
         progressSection.style.display = 'block';
