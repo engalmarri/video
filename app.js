@@ -30,7 +30,6 @@ async function init() {
     createBtn.textContent = '⏳ جاري تحميل المحرك...';
 
     try {
-        const base = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm';
         state.ffmpeg = new FFmpeg();
 
         state.ffmpeg.on('progress', ({ progress }) => {
@@ -39,10 +38,9 @@ async function init() {
             progressText.textContent = `جاري المعالجة... ${Math.round(pct)}%`;
         });
 
-        await state.ffmpeg.load({
-            coreURL: await toBlobURL(`${base}/ffmpeg-core.js`, 'text/javascript'),
-            wasmURL: await toBlobURL(`${base}/ffmpeg-core.wasm`, 'application/wasm'),
-        });
+        const coreURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js';
+        const wasmURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.wasm';
+        await state.ffmpeg.load({ coreURL, wasmURL });
 
         state.loaded = true;
         createBtn.textContent = '⚡ إنشاء الفيديو';
