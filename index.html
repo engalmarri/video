@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Maker</title>
+    <link rel="stylesheet" href="styles.css">
+    <script type="importmap">
+    {
+        "imports": {
+            "@ffmpeg/ffmpeg": "https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js",
+            "@ffmpeg/util": "https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.10/dist/esm/index.js"
+        }
+    }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎬 Video Maker</h1>
+            <p>إنشاء فيديو من الصور ومقاطع الفيديو — كل المعالجة على جهازك</p>
+        </header>
+
+        <section class="card upload-section">
+            <div class="drop-zone" id="dropZone">
+                <div class="drop-zone-text">
+                    <span class="drop-icon">📁</span>
+                    <p>اسحب وأفلت الملفات هنا</p>
+                    <p class="sub-text">أو اضغط لاختيار الملفات</p>
+                </div>
+                <input type="file" id="fileInput" multiple accept="image/*,video/*" hidden>
+            </div>
+        </section>
+
+        <section class="card media-section" id="mediaSection" style="display:none">
+            <h2>الوسائط المرفوعة</h2>
+            <p class="section-desc">يمكنك سحب العناصر لترتيبها</p>
+            <div class="media-list" id="mediaList"></div>
+        </section>
+
+        <section class="card text-section">
+            <h2>إعدادات النص</h2>
+            <p class="section-desc">سيظهر النص في أول 5 ثوانٍ من الفيديو في الأسفل</p>
+
+            <div class="form-group">
+                <label>السعر بالريال السعودي <span class="flag">🇸🇦</span></label>
+                <input type="text" id="sarPrice" class="rtl-input" placeholder="أدخل السعر بالأرقام...">
+            </div>
+
+            <div class="form-group">
+                <label>السعر بالريال اليمني <span class="flag">🇾🇪</span></label>
+                <input type="text" id="yerPrice" class="rtl-input" placeholder="أدخل السعر بالأرقام...">
+            </div>
+
+            <div class="form-group">
+                <label>اختر الخيار</label>
+                <select id="optionSelect">
+                    <option value="قطعة كاملة ثلاثة وار مع البطانة">قطعة كاملة ثلاثة وار مع البطانة</option>
+                    <option value="سعر الوار">سعر الوار</option>
+                </select>
+            </div>
+        </section>
+
+        <section class="card settings-section">
+            <h2>إعدادات الفيديو</h2>
+
+            <div class="form-group">
+                <label>سرعة الفيديو</label>
+                <select id="speedSelect">
+                    <option value="1">×1 (عادي)</option>
+                    <option value="1.5">×1.5</option>
+                    <option value="2" selected>×2</option>
+                    <option value="3">×3</option>
+                    <option value="4">×4</option>
+                </select>
+            </div>
+        </section>
+
+        <section class="action-section">
+            <button class="btn btn-primary" id="createBtn" disabled>
+                ⚡ إنشاء الفيديو
+            </button>
+
+            <div class="progress-section" id="progressSection" style="display:none">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <p class="progress-text" id="progressText">جاري المعالجة...</p>
+            </div>
+
+            <button class="btn btn-success" id="downloadBtn" style="display:none">
+                💾 تحميل الفيديو (MP4)
+            </button>
+        </section>
+
+        <footer>
+            <p>جميع الملفات تُعالج على جهازك — لا تُرفع لأي سيرفر</p>
+        </footer>
+    </div>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
