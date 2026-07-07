@@ -23,7 +23,7 @@ const yerPrice = $('yerPrice');
 const optionSelect = $('optionSelect');
 const speedSelect = $('speedSelect');
 
-init();
+init().catch(e => console.error('Init error:', e));
 setupEvents();
 
 async function init() {
