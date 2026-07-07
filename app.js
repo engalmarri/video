@@ -305,7 +305,7 @@ async function createVideo() {
         // 1. Load Arabic font
         setProgress(1, 'تحميل الخط العربي...');
         const fontResp = await fetch(
-            'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/notosansarabic/NotoSansArabic%5Bwght%5D.ttf'
+            'https://raw.githubusercontent.com/google/fonts/main/ofl/notosansarabic/NotoSansArabic%5Bwdth,wght%5D.ttf'
         );
         if (!fontResp.ok) throw new Error('Failed to load font');
         const fontBuf = await fontResp.arrayBuffer();
@@ -365,25 +365,24 @@ async function createVideo() {
             }
         }
 
-        // 3. Build filtergraph for concat + speed + text
+        // 3. Build filtergraph: concat → speed → text
         setProgress(30, 'بناء الفلتر النهائي...');
 
         const filterParts = [];
 
-        // Label each input, applying setpts for speed
-        if (speed !== 1) {
-            for (let i = 0; i < segNames.length; i++) {
-                filterParts.push(`[${i}:v]setpts=PTS/${speed}[v${i}]`);
-            }
-        }
-
-        // Concat filter
-        const inputRefs = segNames.map((_, i) => speed !== 1 ? `[v${i}]` : `[${i}:v]`).join('');
+        // Concat all segments (concat ignores input timestamps)
+        const inputRefs = segNames.map((_, i) => `[${i}:v]`).join('');
         filterParts.push(`${inputRefs}concat=n=${segNames.length}:v=1:a=0[concatv]`);
 
-        let lastLabel = 'concatv';
+        let prevLabel = 'concatv';
 
-        // Drawtext overlays
+        // Apply speed globally (after concat so timestamps are fresh)
+        if (speed !== 1) {
+            filterParts.push(`[concatv]setpts=PTS/${speed}[spedv]`);
+            prevLabel = 'spedv';
+        }
+
+        // Drawtext overlays (fontsize 20, bottom-center, first 5s only)
         if (textLines.length > 0) {
             const drawFilters = textLines.map((line, i) => {
                 const fromBottom = textLines.length - 1 - i;
@@ -391,8 +390,8 @@ async function createVideo() {
                 const esc = escapeFilterText(line);
                 return `drawtext=text='${esc}':fontfile=font.ttf:fontsize=20:fontcolor=white:box=1:boxcolor=black@0.4:x=(w-text_w)/2:y=${y}:enable='lt(t,5)'`;
             });
-            filterParts.push(`[${lastLabel}]${drawFilters.join(',')}[outv]`);
-            lastLabel = 'outv';
+            filterParts.push(`[${prevLabel}]${drawFilters.join(',')}[outv]`);
+            prevLabel = 'outv';
         }
 
         const filterComplex = filterParts.join(';');
@@ -403,7 +402,7 @@ async function createVideo() {
         const args = [
             ...segNames.flatMap((s) => ['-i', s]),
             '-filter_complex', filterComplex,
-            '-map', `[${lastLabel}]`,
+            '-map', `[${prevLabel}]`,
             '-c:v', 'libx264',
             '-preset', 'fast',
             '-pix_fmt', 'yuv420p',
